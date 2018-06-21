@@ -5,6 +5,7 @@ import matplotlib.path as mplPath
 import matplotlib.pyplot as plt
 import time
 from generate_patches import main as generate_patches
+import collections
 
 
 class Node:
@@ -15,6 +16,22 @@ class Node:
     def __init__(self,xcoord, ycoord):
          self.x = xcoord
          self.y = ycoord
+
+
+class MovingAverage:
+    def __init__(self, size, term):
+        self.queue = collections.deque(maxlen=size)
+        self.averaged_queue = collections.deque([0], maxlen=2)
+        self.term = term
+
+    def average(self, val):
+        self.queue.append(val)
+        avg = sum(self.queue)/len(self.queue)
+        self.averaged_queue.append(avg)
+        return avg
+
+    def avg_cost_change(self):
+        return abs(self.averaged_queue[-1]-self.averaged_queue[-2]) < self.term
 
 
 def dist(p1, p2):
@@ -41,9 +58,13 @@ def chooseParent(nn, newnode, nodes, RADIUS, object_c):
 
 
 def check_intersect(nodeA, nodeB, object_c):
-    A = np.array([nodeA.x, nodeA.y])
-    B = np.array([nodeB.x, nodeB.y])
-    t = np.linspace(0, 1, 50)
+    if isinstance(nodeA, Node) or isinstance(nodeB, Node):
+        A = np.array([nodeA.x, nodeA.y])
+        B = np.array([nodeB.x, nodeB.y])
+    else:
+        A = nodeA
+        B = nodeB
+    t = np.linspace(0, 1, 100)
     interp = np.asarray([B*i + (1-i)*A for i in t])
     decisions = [p.contains_points(interp) for p in object_c]
     decisions = [item for sublist in decisions for item in sublist]
@@ -80,12 +101,24 @@ def drawSolutionPath(start, goal, nodes, plot):
         plt.plot(goal.x, goal.y, 'r.', markersize = 10)
     return path
 
+def path_cost(path):
+    length = 0
+    for i in range(0, path.shape[0]-1):
+        length = length + np.linalg.norm(path[i+1]-path[i])
+    return length
 
-def main(cx, cy, start, goal, filename, EPSILON, plot):
+def path_validity(path, object_c):
+    validity = [check_intersect(path[i, :], path[i + 1, :], object_c) for i in range(path.shape[0]-1)]
+    return all(validity)
 
+
+def main(cx, cy, start_raw, goal_raw, filename, EPSILON, plot):
     NUMNODES = 1000
-    RADIUS = 10.0
+    RADIUS = 30.0
 
+
+    # plt.close('all')
+    # generate_patches(cx, cy, load_polys)
 
     """Loading and formatting obstacles"""
     polygon = np.asarray(np.load(filename))
@@ -95,11 +128,12 @@ def main(cx, cy, start, goal, filename, EPSILON, plot):
         object_c.append(obj)
 
     nodes = []
-    nodes.append(Node(start[0], start[1]))  # Start in the corner start= nodes[0]
+    nodes.append(Node(start_raw[0], start_raw[1]))  # Start in the corner start= nodes[0]
     start = nodes[0]
-    goal = Node(goal[0], goal[1])
+    goal = Node(goal_raw[0], goal_raw[1])
     t = time.time()
     counter = 0
+    cost_queue = MovingAverage(size=5, term=1)
     while True:
 
         rand = Node(random.random() * cx, random.random() * cy)
@@ -108,15 +142,24 @@ def main(cx, cy, start, goal, filename, EPSILON, plot):
             if dist([p.x, p.y], [rand.x, rand.y]) < dist([nn.x, nn.y], [rand.x, rand.y]):
                 nn = p
         interpolatedNode = step_from_to([nn.x, nn.y], [rand.x, rand.y], EPSILON)
-        newnode = Node(interpolatedNode[0], interpolatedNode[1])
+        _newnode = Node(interpolatedNode[0], interpolatedNode[1])
         if check_intersect(nn, rand, object_c):
-            [newnode, nn] = chooseParent(nn, newnode, nodes, RADIUS, object_c)
+            [newnode, nn] = chooseParent(nn, _newnode, nodes, RADIUS, object_c)
 
             nodes.append(newnode)
             nodes = reWire(nodes, newnode, RADIUS, object_c)
-        if np.linalg.norm(np.array([newnode.x, newnode.y])-np.array([goal.x, goal.y])) < EPSILON:
-            break
 
+        # if np.linalg.norm(np.array([_newnode.x, _newnode.y]) - np.array([goal.x, goal.y])) < EPSILON\
+        #         and check_intersect(_newnode, goal, object_c):
+        #     break
+
+        if counter%10 == 0:
+            interim_path = drawSolutionPath(start, goal, nodes, plot=False)
+            interim_cost = path_cost(interim_path)
+            # print('interim cost', interim_cost)
+            cost_queue.average(interim_cost)
+            if cost_queue.avg_cost_change() and path_validity(interim_path, object_c):
+                break
         if counter > NUMNODES:
             print('limit reached!')
             break
@@ -126,10 +169,17 @@ def main(cx, cy, start, goal, filename, EPSILON, plot):
     t_path = time.time() - t
     return path, t_path
 
-
 if __name__ == '__main__':
     load_polys = 'random_squares_1.npy'
+
+    # set variables ------------------
     cx = cy = 100
+    start_raw, goal_raw = (10, 20), (90, 90.17)
+    EPSILON = 10
+    plot = True
+    # --------------------------------
+
     plt.close('all')
     generate_patches(cx, cy, load_polys)
-    path, time = main(cx, cy, (10, 20), (90, 90.17), load_polys, EPSILON=5, plot=True)
+    path, _time = main(cx, cy, start_raw, goal_raw, load_polys, EPSILON, plot)
+    print('time taken to generate a path', _time)
