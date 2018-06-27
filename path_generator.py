@@ -18,16 +18,17 @@ def path_validity(path, object_c):
 
 
 def main(cx, cy, obstacle_path, model, start=None, goal=None, num_evals=1, eval_mode=False, plotopt=False):
+
     """eval_mode is True when function is
         used for testing performance of the network
         When False, function takes in specified start and goal
         and generates a path
     """
-
     object_c = format_obstacles(load_poly=obstacle_path)
     valid_counter = 0
     path_set = []
     for i in range(num_evals):
+
         if eval_mode:
             start, goal = generate_samples(cx, cy, load_polys=obstacle_path, num_samples=2)
 
@@ -55,6 +56,7 @@ def main(cx, cy, obstacle_path, model, start=None, goal=None, num_evals=1, eval_
         # print('time elapsed for generated path: ', tend-tstart)
         s_path = np.asarray(s_path)
         path_set.append(s_path)
+
         if plotopt:
             plt.plot(s_path[:, 0], s_path[:, 1], 'k')
             plt.plot(start[0], start[1], 'g.', markersize = 10)
