@@ -2,19 +2,24 @@ import numpy as np
 import numpy.matlib as mat
 from tqdm import tqdm
 import random
+import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch import optim
 
+from path_generator import main as model_eval
 
 # make variable types for automatic setting to GPU or CPU, depending on GPU availability
-use_cuda = torch.cuda.is_available()
-FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
-ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
-Tensor = FloatTensor
+def set_torch_types():
+    use_cuda = torch.cuda.is_available()
+    type_dict = {
+        'FloatTensor': torch.cuda.FloatTensor if use_cuda else torch.FloatTensor,
+        'LongTensor' : torch.cuda.LongTensor if use_cuda else torch.LongTensor,
+        'ByteTensor' : torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
+    }
+    return type_dict
 
 
 class ProcessData:
@@ -72,6 +77,7 @@ class SimpleRNN(nn.Module):
         return output, hidden
 
     def forward(self, inputs, hidden=None, force=True, steps=0):
+        if 'FloatTensor' not in locals(): FloatTensor = set_torch_types()['FloatTensor']
         if force or steps == 0: steps = len(inputs)
         outputs = Variable(torch.zeros(steps, list(inputs.size())[1], self.op_dim)).type(FloatTensor)
         for i in range(steps):
@@ -83,51 +89,64 @@ class SimpleRNN(nn.Module):
             outputs[i] = output
         return outputs, hidden
 
+if __name__ == '__main__':
+    types = set_torch_types()
+    FloatTensor = types['FloatTensor']
 
-data_filename = 'training_data_5k_r_sq_1.npy'
-trainingData = ProcessData(filename=data_filename)
-train_X, train_Y = trainingData.formatData(print_shapes=True)
-
-
-# ## HYPER-PARAMETER DEFINITIONS ###
-
-hid = 200
-n_epochs = 1000
-n_iters = 100  # iterations per epoch
-batch_size = 1000
-learning_rate = 0.02
-
-# #################################
+    obstacle_path = 'random_squares_1.npy'
+    data_filename = 'training_data_5k_r_sq_1.npy'
+    cx = cy = 100
+    trainingData = ProcessData(filename=data_filename)
+    train_X, train_Y = trainingData.formatData(print_shapes=True)
 
 
-model = SimpleRNN(inp_dim=train_X.shape[-1],
-                  hidden_size=hid,
-                  op_dim=train_Y.shape[-1],
-                  stacked_layers=1)
+    # ## HYPER-PARAMETER DEFINITIONS ###
 
-criterion = nn.MSELoss()
-optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
-model.cuda()
+    hid = 100
+    n_epochs = 2000
+    n_iters = 100  # iterations per epoch
+    batch_size = 1000
+    learning_rate = 0.02
+    stacked_hidden_layers = 2
+    # #################################
 
-losses = np.zeros(n_epochs) # For plotting
+    model = SimpleRNN(inp_dim=train_X.shape[-1],
+                      hidden_size=hid,
+                      op_dim=train_Y.shape[-1],
+                      stacked_layers=stacked_hidden_layers)
 
-for epoch in range(n_epochs):
+    criterion = nn.MSELoss()
+    optimizer = optim.Adadelta(model.parameters())
+    model.cuda()
 
-    for iter in range(n_iters):
-        _inputs, _targets = trainingData.sampleBatches(batch_size=batch_size)
-        inputs = Variable(torch.from_numpy(_inputs)).type(FloatTensor)
-        targets = Variable(torch.from_numpy(_targets)).type(FloatTensor)
+    losses = np.zeros(n_epochs) # For plotting
+    success_tracker = np.zeros(n_epochs)
+    for epoch in range(n_epochs):
 
-        # Use teacher forcing 50% of the time
-        force = random.random() < 0.5
-        outputs, hidden = model(inputs, None, force)
+        for iter in range(n_iters):
+            _inputs, _targets = trainingData.sampleBatches(batch_size=batch_size)
+            inputs = Variable(torch.from_numpy(_inputs)).type(FloatTensor)
+            targets = Variable(torch.from_numpy(_targets)).type(FloatTensor)
 
-        optimizer.zero_grad()
-        loss = criterion(outputs, targets)
-        loss.backward()
-        optimizer.step()
+            # Use teacher forcing 50% of the time
+            force = random.random() < 0.5
+            outputs, hidden = model(inputs, None, force)
 
-        losses[epoch] += loss.data[0]
+            optimizer.zero_grad()
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            losses[epoch] += loss.data[0]
 
-    if epoch > 0:
-        print(epoch, loss.data[0])
+        if epoch > 0:
+            print(epoch, loss.data[0])
+        torch.save(model.state_dict(), './Models/test_oralenet.pkl')
+
+        ## test online performance of network
+        _, validity = model_eval(cx, cy, obstacle_path, model,
+                                 num_evals=100, eval_mode=True, plotopt=False)
+        success_tracker[epoch] = validity
+        print('Success Rate trends: ', validity)
+
+    plt.figure()
+    plt.plot(validity)

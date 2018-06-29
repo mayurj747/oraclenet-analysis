@@ -2,11 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from keras.models import load_model
+import torch
+from torch.autograd import Variable
 
 from generate_samples import main as generate_samples, format_obstacles
 from rrt_star_2D import check_intersect
 from generate_patches import main as generate_patches
+
 
 def path_validity(path, object_c):
     validity = [check_intersect(path[i, :], path[i+1, :], object_c) for i in range(path.shape[0]-1)]
@@ -31,8 +33,6 @@ def main(cx, cy, obstacle_path, model, start=None, goal=None, num_evals=1, eval_
         start_ext = start[np.newaxis, np.newaxis, ...]
         goal_ext = goal[np.newaxis, np.newaxis, ...]
         s_pred = np.concatenate((start_ext, goal_ext), axis=-1)
-        s_pred_var = Variable(torch.from_numpy(s_pred)).type(FloatTensor)
-        goal_var = Variable(torch.from_numpy(goal_ext)).type(FloatTensor)
         # goal_var = Variable(torch.from_numpy(goal)).type(FloatTensor)
 
         s_path = [start]
@@ -40,13 +40,12 @@ def main(cx, cy, obstacle_path, model, start=None, goal=None, num_evals=1, eval_
         tstart = time.time()
 
         while True:
-            out1_var, _ = model(s_pred_var, None, force=True)
-            out1 = out1_var.data.cpu().numpy()
+            out1 = model.predict(s_pred)
             s_path.append(out1[0, 0, :])
-            s_pred_var = torch.cat((out1_var, goal_var), dim=-1)
+            s_pred = np.concatenate((out1, goal_ext), axis=-1)
 
             num_points += 1
-            if np.linalg.norm(out1 - goal) < 1 or num_points > 50:
+            if np.linalg.norm(out1 - goal) < 5 or num_points > 50:
                 break
         tend = time.time()
         # print('time elapsed for generated path: ', tend-tstart)
@@ -54,6 +53,7 @@ def main(cx, cy, obstacle_path, model, start=None, goal=None, num_evals=1, eval_
         path_set.append(s_path)
 
         if plotopt:
+            generate_patches(cx, cy, obstacle_path)
             plt.plot(s_path[:, 0], s_path[:, 1], 'k')
             plt.plot(start[0], start[1], 'g.', markersize = 10)
             plt.plot(goal[0], goal[1], 'r.', markersize = 10)
