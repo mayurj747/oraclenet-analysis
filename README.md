@@ -2,9 +2,9 @@
 Code, animations, and supplementary material for OracleNet 
 
 
-[![OracleNet](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://youtu.be/2KYesBrx2kk "OracleNet (Paper 168, RSS 2018)")
+[![OracleNet](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://youtu.be/2KYesBrx2kk "OracleNet")
 
-[![OracleNet)](https://img.youtube.com/vi/a440JJRSzy4/0.jpg)](https://youtu.be/a440JJRSzy4 "OracleNet Baxter Left")
+[![OracleNet](https://img.youtube.com/vi/a440JJRSzy4/0.jpg)](https://youtu.be/a440JJRSzy4 "OracleNet Baxter Left")
 
 [![OracleNet](https://img.youtube.com/vi/oXUeDx4AHYU/0.jpg)](https://youtu.be/oXUeDx4AHYU "OracleNet Baxter Right")
 
