@@ -2,8 +2,11 @@
 Code, animations, and supplementary material for OracleNet 
 
 
-[![OracleNet (Paper 168, RSS 2018)](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://youtu.be/2KYesBrx2kk "OracleNet (Paper 168, RSS 2018)")
+[![OracleNet](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://youtu.be/2KYesBrx2kk "OracleNet (Paper 168, RSS 2018)")
 
+[![OracleNet)](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://drive.google.com/open?id=1wSnhHIEazoQXzoRXyb8AIlDVPnR9g3Lu "OracleNet (Paper 168, RSS 2018)")
+
+[![OracleNet](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://drive.google.com/open?id=1wSnhHIEazoQXzoRXyb8AIlDVPnR9g3Lu "OracleNet (Paper 168, RSS 2018)")
 
 Performance trends with variable dataset and network sizes
 ----------------------------------------------------------
