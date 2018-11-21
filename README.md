@@ -4,7 +4,7 @@ Code, animations, and supplementary material for OracleNet
 
 [![OracleNet](https://img.youtube.com/vi/2KYesBrx2kk/0.jpg)](https://youtu.be/2KYesBrx2kk "OracleNet")
 
-[![Baxter](https://img.youtube.com/vi/a440JJRSzy4/0.jpg)](https://youtu.be/a440JJRSzy4 "OracleNet Baxter Left")
+[![Baxter](https://img.youtube.com/vi/a440JJRSzy4/0.jpg)](https://www.youtube.com/watch?v=a440JJRSzy4)
 
 [![OracleNet](https://img.youtube.com/vi/oXUeDx4AHYU/0.jpg)](https://youtu.be/oXUeDx4AHYU "OracleNet Baxter Right")
 
